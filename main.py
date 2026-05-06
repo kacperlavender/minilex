@@ -35,31 +35,36 @@ def perplexity(test_text):
         count += 1
     return math.exp(-log_prob / count)
 
-text = open("pan_tadeusz.txt", encoding="utf-8").read()
-chars = sorted(set(text))
+def main():
+    text = open("pan_tadeusz.txt", encoding="utf-8").read()
+    chars = sorted(set(text))
 
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
+    stoi = {ch: i for i, ch in enumerate(chars)}
+    itos = {i: ch for i, ch in enumerate(chars)}
 
-counts = defaultdict(lambda: defaultdict(int))
+    counts = defaultdict(lambda: defaultdict(int))
 
-for i in range(len(text) - 1):
-    a = text[i]
-    b = text[i + 1]
+    for i in range(len(text) - 1):
+        a = text[i]
+        b = text[i + 1]
 
-    counts[a][b] += 1
+        counts[a][b] += 1
 
-probs = {}
+    probs = {}
 
-for a in counts:
-    total = sum(counts[a].values())
-    probs[a] = {b: count/total for b, count in counts[a].items()}
+    for a in counts:
+        total = sum(counts[a].values())
+        probs[a] = {b: count/total for b, count in counts[a].items()}
 
-for i in range(3):
-    seed = random.choice(list(probs.keys()))
-    print(f"[Seed: {seed}]: {generate(seed, 50)}")
-    print()
+    for i in range(3):
+        seed = random.choice(list(probs.keys()))
+        print(f"[Seed: {seed}]: {generate(seed, 50)}")
+        print()
 
-print(f"perplexity na korpusie: {perplexity(text):.2f}")
-print(f"perplexity na 'Soplica ': {perplexity('Soplica '):.2f}")
-print(f"perplexity na 'xyz123': {perplexity('xyz123'):.2f}")
+
+if __name__ == '__main__':
+    main()
+
+    print(f"perplexity na korpusie: {perplexity(text):.2f}")
+    print(f"perplexity na 'Soplica ': {perplexity('Soplica '):.2f}")
+    print(f"perplexity na 'xyz123': {perplexity('xyz123'):.2f}")
