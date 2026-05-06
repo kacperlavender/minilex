@@ -2,18 +2,19 @@ from collections import defaultdict
 import random
 import math
 from pathlib import Path
+import time
 
 # https://wolnelektury.pl/katalog/lektury/
 
 _FILES = [f.name for f in Path("data").glob("*.txt")]
 
 class Markov:
-    def __init__(self, text, n = 3):
+    def __init__(self, text: str, n = 3):
         self.text = text
         self.n = n
         self.probs = self._build_probs(text)
     
-    def _build_probs(self, text):
+    def _build_probs(self, text: str, alpha=0.1):
         counts = defaultdict(lambda: defaultdict(int))
 
         for i in range(len(text) - self.n):
@@ -22,36 +23,41 @@ class Markov:
             counts[context][next_char] += 1
 
         probs = {}
+        all_chars = set(text)
 
         for context, transition in counts.items():
             total = sum(transition.values())
-            probs[context] = {ch: cnt / total for ch, cnt in transition.items()}
+            probs[context] = {
+                ch: (transition.get(ch, 0) + alpha) / (total + alpha * len(all_chars)) for ch, cnt in transition.items()
+            }
 
         return probs 
 
             
-    def generate(self, seed, length):
-        if len(seed) < self.n - 1:
-            raise ValueError(f"seed musi mieć co najmniej {self.n-1} znaków")
+    def generate(self, seed: str, length: int, beam_width = 3):
+        candidates = [(seed, 0.0)] # text, log_of_probability
 
-        result = list(seed)
-        context = seed[-(self.n - 1):]
+        for _ in range(length):
+            new_candidates = []
 
-        for _ in range(length - len(seed)):
-            if context not in self.probs:
-                break
+            for text, score in candidates:
+                context = text[-(self.n - 1):]
+                if context not in self.probs:
+                    continue
 
-            next_chars = list(self.probs[context].keys())
-            weights = list(self.probs[context].values())
-            next_char = random.choices(next_chars, weights=weights)[0]
+                for char, prob in self.probs.get(context, {}).items():
+                    new_candidates.append((text + char, score + math.log(prob)))
 
-            result.append(next_char)
-            context = context[1:] + next_char
+            if not new_candidates:
+                break 
 
-        return ''.join(result)
+            # sort by score and choose best path
+            candidates = sorted(new_candidates, key=lambda x: x[1], reverse=True)[:beam_width]
+
+        return candidates[0][0] if candidates else seed
 
 
-    def perplexity(self, test_text):
+    def perplexity(self, test_text: str):
         log_prob = 0.0
         count = 0
 
@@ -81,18 +87,22 @@ def loaddata(l: list[str]) -> str:
 
     return text
 
-
 def main():
     text = loaddata(_FILES)
 
     seed = str(input("ask away: \n"))
 
+    t_start = time.perf_counter()
     model = Markov(text, len(seed) - 1)
-
     generated = model.generate(seed, 150)
 
+    t_stop = time.perf_counter()
+
     print(f"[seed: {seed}]:\n\n {generated}")
+    
+    print()
     print(model)
+    print("took:", "{:.7f}s".format(t_stop - t_start))
 
 
 if __name__ == '__main__':
