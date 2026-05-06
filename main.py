@@ -1,6 +1,9 @@
 from collections import defaultdict
 import random
 import math
+from pathlib import Path
+
+_FILES = [f.name for f in Path("data").glob("*.txt")]
 
 class Markov:
     def __init__(self, text):
@@ -57,23 +60,27 @@ class Markov:
             count += 1
         return math.exp(-log_prob / count) if count else float('inf')
 
-def main():
-    with open("data/pan_tadeusz.txt", encoding="utf-8") as f:
-        text = f.read()
 
-    
+def loaddata(l: list(str)) -> str:
+    text = ""
+
+    for i in range(len(l)):
+        with open(f"data/{l[i]}", encoding="utf-8") as f:
+            data = f.read()
+            text += data
+
+    return text
+
+
+def main():
+    text = loaddata(_FILES)
 
     model = Markov(text)
 
-    # seed = random.choice(list(model.probs.keys()))
-    seed = 'a'
+    seed = 'm'
     generated = model.generate(seed, 50)
 
     print(f"[seed: {seed}]:\n {generated}")
-
-    print(f"perplexity na korpusie: {model.perplexity(text):.2f}")
-    print(f"perplexity na 'Soplica ': {model.perplexity('Soplica '):.2f}")
-    print(f"perplexity na 'xyz123': {model.perplexity('xyz123'):.2f}")
 
 if __name__ == '__main__':
     main()
